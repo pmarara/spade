@@ -40,7 +40,7 @@ class NotValidTransition(Exception):
 class CyclicBehaviour(object, metaclass=ABCMeta):
     """This behaviour is executed cyclically until it is stopped."""
 
-    def __init__(self):
+    def __init__(self, priority = 0):
         self.agent = None
         self.template = None
         self._force_kill = Event()
@@ -49,7 +49,7 @@ class CyclicBehaviour(object, metaclass=ABCMeta):
         self.presence = None
         self.web = None
         self.is_running = False
-
+        self.priority = priority  # Storing priority
         self.queue = None
 
     def set_agent(self, agent) -> None:
@@ -120,7 +120,7 @@ class CyclicBehaviour(object, metaclass=ABCMeta):
 
     def start(self) -> None:
         """starts behaviour in the event loop"""
-        self.agent.submit(self._start())
+        self.agent.submit(self._start(), priority=self.priority)
         self.is_running = True
 
     async def _start(self) -> None:
@@ -376,8 +376,8 @@ class CyclicBehaviour(object, metaclass=ABCMeta):
 class OneShotBehaviour(CyclicBehaviour, metaclass=ABCMeta):
     """This behaviour is only executed once"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, priority=0):
+        super().__init__(priority=priority)
         self._already_executed = False
 
     def _done(self) -> bool:
@@ -391,7 +391,7 @@ class OneShotBehaviour(CyclicBehaviour, metaclass=ABCMeta):
 class PeriodicBehaviour(CyclicBehaviour, metaclass=ABCMeta):
     """This behaviour is executed periodically with an interval"""
 
-    def __init__(self, period: float, start_at: Optional[datetime] = None):
+    def __init__(self, period: float, start_at: Optional[datetime] = None, priority=0):
         """
         Creates a periodic behaviour.
 
@@ -399,7 +399,7 @@ class PeriodicBehaviour(CyclicBehaviour, metaclass=ABCMeta):
             period (float): interval of the behaviour in seconds
             start_at (datetime.datetime): whether to start the behaviour with an offset
         """
-        super().__init__()
+        super().__init__(priority=priority)
         self._period = None
         self.period = period
 
@@ -446,14 +446,14 @@ class PeriodicBehaviour(CyclicBehaviour, metaclass=ABCMeta):
 class TimeoutBehaviour(OneShotBehaviour, metaclass=ABCMeta):
     """This behaviour is executed once at after specified datetime"""
 
-    def __init__(self, start_at):
+    def __init__(self, start_at, priority=0):
         """
         Creates a timeout behaviour, which is run at start_at
 
         Args:
             start_at (datetime.datetime): when to start the behaviour
         """
-        super().__init__()
+        super().__init__(priority=priority)
 
         self._timeout = start_at
         self._timeout_triggered = False
@@ -481,8 +481,8 @@ class TimeoutBehaviour(OneShotBehaviour, metaclass=ABCMeta):
 class State(OneShotBehaviour, metaclass=ABCMeta):
     """A state of a FSMBehaviour is a OneShotBehaviour"""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, priority=0):
+        super().__init__(priority=priority)
         self.next_state = None
 
     def set_next_state(self, state_name: str) -> None:
@@ -501,8 +501,8 @@ class State(OneShotBehaviour, metaclass=ABCMeta):
 class FSMBehaviour(CyclicBehaviour):
     """A behaviour composed of states (oneshotbehaviours) that may transition from one state to another."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, priority=0):
+        super().__init__(priority=priority)
         self._states: Dict[str, State] = {}
         self._transitions = collections.defaultdict(list)
         self.current_state: Optional[str] = None

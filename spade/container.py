@@ -3,6 +3,8 @@ import logging
 import sys
 from contextlib import suppress
 from typing import Coroutine, Awaitable
+from PriorityAsyncio.base_events import PrioritizedEventLoop
+from PriorityAsyncio import events
 
 from singletonify import singleton
 
@@ -20,12 +22,12 @@ if sys.version_info >= (3, 7) and sys.platform == "win32":
 
 def get_or_create_eventloop():  # pragma: no cover
     if sys.version_info < (3, 10):
-        loop = asyncio.get_event_loop()
+        loop = events.get_event_loop()
     else:
         try:
-            loop = asyncio.get_running_loop()
+            loop = events.get_running_loop()
         except RuntimeError:
-            loop = asyncio.new_event_loop()
+            loop = events.new_event_loop()
 
     asyncio.set_event_loop(loop)
     return loop

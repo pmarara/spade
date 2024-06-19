@@ -217,7 +217,7 @@ class Agent(object):
         digest = md5(str(jid).encode("utf-8")).hexdigest()
         return "http://www.gravatar.com/avatar/{md5}?d=monsterid".format(md5=digest)
 
-    def submit(self, coro: Coroutine) -> Task:
+    def submit(self, coro: Coroutine, priority = 0) -> Task:
         """
         Runs a coroutine in the event loop of the agent.
         this call is not blocking.
@@ -229,7 +229,7 @@ class Agent(object):
             asyncio.Task: the Task assigned to the coroutine execution
 
         """
-        return asyncio.create_task(coro)
+        return self.loop.create_task(coro, priority = priority)
 
     def add_behaviour(
         self, behaviour: BehaviourType, template: Optional[Template] = None
