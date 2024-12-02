@@ -12,6 +12,7 @@ from typing import Any, Optional, Dict, TypeVar
 from .message import Message
 from .template import Template
 
+
 now = datetime.now
 
 logger = logging.getLogger("spade.behaviour")
@@ -120,7 +121,7 @@ class CyclicBehaviour(object, metaclass=ABCMeta):
 
     def start(self) -> None:
         """starts behaviour in the event loop"""
-        self.agent.submit(self._start(), priority=self.priority)
+        self.agent.submit(self._start(), priority=self.priority, name ="startB$")
         self.is_running = True
 
     async def _start(self) -> None:
@@ -282,6 +283,12 @@ class CyclicBehaviour(object, metaclass=ABCMeta):
         cancelled = False
         while not self._done() and not self.is_killed():
             try:
+                #print(f"Behaviour activado {self}, {self.agent.name}")
+
+                #while any(h.priority < self.priority for h in self.agent.loop._ready):
+                #    await asyncio.sleep(0)  # cede el control a otros comportamientos
+
+
                 await self._run()
                 await asyncio.sleep(0)  # relinquish cpu
             except CancelledError:  # pragma: no cover

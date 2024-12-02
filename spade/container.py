@@ -3,6 +3,7 @@ import logging
 import sys
 from contextlib import suppress
 from typing import Coroutine, Awaitable
+sys.path.append('D:/Archivos/Uni/TFM/')
 from PriorityAsyncio.base_events import PrioritizedEventLoop
 from PriorityAsyncio import events
 

@@ -30,7 +30,7 @@ class AuthenticationFailure(Exception):
 
 
 class Agent(object):
-    def __init__(self, jid: str, password: str, verify_security: bool = False):
+    def __init__(self, jid: str, password: str, ag_name: str = None, verify_security: bool = False):
         """
         Creates an agent
 
@@ -65,6 +65,9 @@ class Agent(object):
         self.traces = TraceStore(size=1000)
 
         self._alive = asyncio.Event()
+
+        self.ag_name = ag_name
+
 
     def set_loop(self, loop) -> None:
         self.loop = loop
@@ -121,7 +124,8 @@ class Agent(object):
         # Presence service
         self.presence = PresenceManager(self)
 
-        await self._async_connect()
+        await self.loop.create_task(self._async_connect(), priority = 0, ag_name = f"{self.ag_name}_connect_")
+        #await self._async_connect()
 
         # register a message callback here
         self.message_dispatcher.register_callback(
@@ -217,7 +221,7 @@ class Agent(object):
         digest = md5(str(jid).encode("utf-8")).hexdigest()
         return "http://www.gravatar.com/avatar/{md5}?d=monsterid".format(md5=digest)
 
-    def submit(self, coro: Coroutine, priority = 0) -> Task:
+    def submit(self, coro: Coroutine, priority = 0, name = "") -> Task:
         """
         Runs a coroutine in the event loop of the agent.
         this call is not blocking.
@@ -229,8 +233,11 @@ class Agent(object):
             asyncio.Task: the Task assigned to the coroutine execution
 
         """
-        return self.loop.create_task(coro, priority = priority)
 
+        
+        # Crear la tarea utilizando el contexto
+        return self.loop.create_task(coro, priority=priority, ag_name= f"{self.ag_name}_{name}")
+        
     def add_behaviour(
         self, behaviour: BehaviourType, template: Optional[Template] = None
     ) -> None:
@@ -376,7 +383,7 @@ class Agent(object):
         tasks = []
         matched = False
         for behaviour in (x for x in self.behaviours if x.match(msg)):
-            tasks.append(self.submit(behaviour.enqueue(msg)))
+            tasks.append(self.submit(behaviour.enqueue(msg), behaviour.priority, "enqueue$"))
             logger.debug(f"Message enqueued to behaviour: {behaviour}")
             self.traces.append(msg, category=str(behaviour))
             matched = True
