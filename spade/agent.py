@@ -30,7 +30,7 @@ class AuthenticationFailure(Exception):
 
 
 class Agent(object):
-    def __init__(self, jid: str, password: str, ag_name: str = None, verify_security: bool = False):
+    def __init__(self, jid: str, password: str, priority = 0, ag_name: str = None, verify_security: bool = False):
         """
         Creates an agent
 
@@ -65,6 +65,8 @@ class Agent(object):
         self.traces = TraceStore(size=1000)
 
         self._alive = asyncio.Event()
+
+        self.priority = priority
 
         self.ag_name = ag_name
 
@@ -124,7 +126,7 @@ class Agent(object):
         # Presence service
         self.presence = PresenceManager(self)
 
-        await self.loop.create_task(self._async_connect(), priority = 0, ag_name = f"{self.ag_name}_connect_")
+        await self.loop.create_task(self._async_connect(), self.priority, ag_name = f"{self.ag_name}_") #ag_name = f"{self.ag_name}_connect_"
         #await self._async_connect()
 
         # register a message callback here
@@ -256,6 +258,10 @@ class Agent(object):
             for _, state in behaviour.get_states().items():
                 state.set_agent(self)
         behaviour.set_template(template)
+
+        if(behaviour.priority == None):
+            behaviour.priority = self.priority
+
         self.behaviours.append(behaviour)
         if self.is_alive():
             behaviour.start()
@@ -383,7 +389,7 @@ class Agent(object):
         tasks = []
         matched = False
         for behaviour in (x for x in self.behaviours if x.match(msg)):
-            tasks.append(self.submit(behaviour.enqueue(msg), behaviour.priority, "enqueue$"))
+            tasks.append(self.submit(behaviour.enqueue(msg), behaviour.priority, behaviour.name))
             logger.debug(f"Message enqueued to behaviour: {behaviour}")
             self.traces.append(msg, category=str(behaviour))
             matched = True
